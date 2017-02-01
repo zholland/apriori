@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.6)
+project(Apriori)
+
+set(CMAKE_C_STANDARD 11)
+
+set(SOURCE_FILES main.c hashtable.c hashtable.h)
+add_executable(Apriori ${SOURCE_FILES})
