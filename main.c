@@ -24,6 +24,24 @@ struct FrequentItemset {
 
 // max 28 items on a line
 
+void printFrequentItemsets(struct FrequentItemset *frequentItemsets) {
+    printf("Frequent itemsets:\n");
+    int k = 0;
+    while (frequentItemsets[k].numberOfItemsets > 0) {
+        for (int i = 0; i < frequentItemsets[k].numberOfItemsets; i++) {
+            printf("{");
+            for (int j = 0; j <= k; j++) {
+                printf("%d", frequentItemsets[k].itemsets[i].items[j]);
+                if (j < k) {
+                    printf(", ");
+                }
+            }
+            printf("}\n");
+        }
+        k++;
+    }
+}
+
 int main(int argc, char *argv[]) {
     clock_t time1 = clock();
     if (argc < 4) {
@@ -34,8 +52,8 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     } else {
         FILE *fp;
-        int minSupport = 10000;
-        float confidence = 0.5;
+        double support = strtod(argv[2], NULL);
+        double confidence = strtod(argv[3], NULL);
         int number;
 
         int max = 0;
@@ -79,6 +97,9 @@ int main(int argc, char *argv[]) {
             Ck[i].support = 0;
         }
 
+        // Turn the support percentage into an integer value
+        int minSupport = (int)(support * numTransactions);
+
         struct Transaction *transactions = calloc(numTransactions, sizeof(struct Transaction));
         int transactionIndex = 0;
         while (fgets(inputBuffer, 255, fp) != NULL) {
@@ -102,9 +123,10 @@ int main(int argc, char *argv[]) {
         }
         fclose(fp);
 
+        // Get 1 frequent itemsets
         size_t numFrequent = 0;
         for (int i = 0; i < 500; i++) {
-            if (Ck[i].support > minSupport) {
+            if (Ck[i].support >= minSupport) {
                 numFrequent++;
             }
         }
@@ -113,12 +135,18 @@ int main(int argc, char *argv[]) {
         frequentItemsets[0].itemsets = calloc(numFrequent, sizeof(struct Itemset));
         int itemsetIndex = 0;
         for (int i = 0; i < 500; i++) {
-            if (Ck[i].support > minSupport) {
-                frequentItemsets[0].itemsets[itemsetIndex].items = Ck[i].items;
+            if (Ck[i].support >= minSupport) {
+                frequentItemsets[0].itemsets[itemsetIndex].items = calloc(1, sizeof(uint32_t));
+                frequentItemsets[0].itemsets[itemsetIndex].items[0] = Ck[i].items[0];
+//                frequentItemsets[0].itemsets[itemsetIndex].items = Ck[i].items;
                 frequentItemsets[0].itemsets[itemsetIndex].support = Ck[i].support;
                 itemsetIndex++;
             }
+//            free(Ck[i].items);
         }
+
+//        printFrequentItemsets(frequentItemsets);
+
 
         size_t size = (size_t) numFrequent * numFrequent;
 
@@ -126,7 +154,7 @@ int main(int argc, char *argv[]) {
 //    for (int i = 0; i < 500; i++) {
 //        free(Ck[i].items);
 //    }
-        free(Ck);
+//        free(Ck);
 
         for (size_t k = 0; frequentItemsets[k].numberOfItemsets > 0; k++) {
             // Inititialize Ck
@@ -191,22 +219,32 @@ int main(int argc, char *argv[]) {
             numFrequent = 0;
             for (int i = 0; i < numCandidates; i++) {
                 Ck[i].support = getCount(LkTable, tableSize, Ck[i].items, k + 2);
-                if (Ck[i].support > minSupport) {
+                if (Ck[i].support >= minSupport) {
                     numFrequent++;
                 }
             }
             frequentItemsets[k + 1].numberOfItemsets = numFrequent;
             frequentItemsets[k + 1].size = k + 2;
+//            printf("Pointer before: %p\n", &frequentItemsets[0].itemsets[0].items[0]);
+//            printf("Value before: %d\n", frequentItemsets[0].itemsets[0].items[0]);
             frequentItemsets[k + 1].itemsets = calloc(numFrequent, sizeof(struct Itemset));
+//            printf("Pointer after: %p\n", &frequentItemsets[0].itemsets[0].items[0]);
+//            printf("Value after: %d\n", frequentItemsets[0].itemsets[0].items[0]);
             itemsetIndex = 0;
             for (int i = 0; i < numCandidates; i++) {
-                if (Ck[i].support > minSupport) {
-                    frequentItemsets[k + 1].itemsets[itemsetIndex].items = Ck[i].items;
+                if (Ck[i].support >= minSupport) {
+//                    frequentItemsets[k + 1].itemsets[itemsetIndex].items = Ck[i].items;
+                    frequentItemsets[k + 1].itemsets[itemsetIndex].items = calloc(k+2, sizeof(uint32_t));
+                    for (int j = 0; j < k+2; j++) {
+                        frequentItemsets[k + 1].itemsets[itemsetIndex].items[j] = Ck[i].items[j];
+                    }
                     frequentItemsets[k + 1].itemsets[itemsetIndex].support = Ck[i].support;
                     itemsetIndex++;
                 }
+//                free(Ck[i].items);
             }
-            free(Ck);
+//            printFrequentItemsets(frequentItemsets);
+//            free(Ck);
         }
 //    size_t key1Size = 3;
 //    uint32_t key1[key1Size];
@@ -241,21 +279,7 @@ int main(int argc, char *argv[]) {
 //    printf("%d", );
 //    printf("Min %d\n", 10);
 //        printf("Max items on line: %zu", maxItemsOnLine);
-        printf("Frequent itemsets:\n");
-        int k = 0;
-        while (frequentItemsets[k].numberOfItemsets > 0) {
-            for (int i = 0; i < frequentItemsets[k].numberOfItemsets; i++) {
-                printf("{");
-                for (int j = 0; j <= k; j++) {
-                    printf("%d", frequentItemsets[k].itemsets[i].items[j]);
-                    if (j < k) {
-                        printf(", ");
-                    }
-                }
-                printf("}\n");
-            }
-            k++;
-        }
+        printFrequentItemsets(frequentItemsets);
         clock_t time2 = clock();
         printf("Elapsed time: %lf s", (double) (time2 - time1) / CLOCKS_PER_SEC);
         return EXIT_SUCCESS;
