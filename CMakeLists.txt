@@ -3,5 +3,5 @@ project(Apriori)
 
 set(CMAKE_C_STANDARD 11)
 
-set(SOURCE_FILES main.c hashtable.c hashtable.h)
+set(SOURCE_FILES main.c hashtable.c hashtable.h lookup3.c lookup3.h)
 add_executable(Apriori ${SOURCE_FILES})

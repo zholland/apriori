@@ -7,7 +7,8 @@
 
 #include <stdint.h>
 
-uint32_t * create(uint32_t tableSize);
-uint32_t incrementCount(uint32_t *table, uint32_t tableSize, uint32_t *key);
-uint32_t getCount(uint32_t *table, uint32_t tableSize, uint32_t *key);
+struct Entry * create(size_t tableSize);
+uint32_t incrementCount(struct Entry *table, size_t tableSize, uint32_t *key, size_t keyLength);
+uint32_t getCount(struct Entry *table, size_t tableSize, uint32_t *key, size_t keyLength);
+void printValues(struct Entry *table, size_t tableSize);
 #endif //APRIORI_HASHTABLE_H
