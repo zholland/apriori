@@ -15,6 +15,12 @@ struct Transaction {
 struct Itemset {
     uint32_t *items;
     uint32_t support;
+    size_t size;
+};
+
+struct Subset {
+    struct Itemset *itemset;
+    struct Subset *nextSubset;
 };
 
 struct FrequentItemset {
@@ -39,12 +45,14 @@ struct HashTree {
 };
 
 struct Rule {
+    bool isFirst;
     uint32_t *anticedent;
     size_t anticedentSize;
     uint32_t *consequence;
     size_t consequenceSize;
     double support;
     double confidence;
+    struct Rule *nextRule;
 };
 
 // max 28 items on a line
@@ -135,7 +143,46 @@ void count(struct HashTree *tree, struct Node *node, struct Transaction *transac
     }
 }
 
+bool isFrequent(struct FrequentItemset *frequentItemsets, struct Itemset *itemset, size_t k) {
+    // Iterate through frequent itemsets
+    for (int i = 0; i < frequentItemsets[k-1].numberOfItemsets; i++) {
+        // Iterate through the elements of the given itemset.
+        int j;
+        for (j = 0; j < k-1; j++) {
+            if (frequentItemsets[k-1].itemsets[i].items[j] != itemset->items[j]) {
+                break;
+            }
+        }
+        if (j == k-1 && itemset->items[j] == frequentItemsets[k-1].itemsets[i].items[j]) {
+            return true;
+        }
+    }
+    return false;
+}
 
+bool isPotentiallyFrequent(struct FrequentItemset *frequentItemsets, struct Itemset *itemset, size_t k) {
+    struct Itemset *subset = malloc(sizeof(struct Itemset));
+    subset->items = calloc(k, sizeof(uint32_t));
+    for (int i = 0; i < k; i++) {
+        int p = 0;
+        for (int j = 0; j < k; j++) {
+            if (p == i) {
+                p++;
+            }
+            subset->items[j] = itemset->items[p];
+            p++;
+        }
+        bool frequent = isFrequent(frequentItemsets, subset, k);
+        if (!frequent) {
+            free(subset->items);
+            free(subset);
+            return false;
+        }
+    }
+    free(subset->items);
+    free(subset);
+    return true;
+}
 
 void printFrequentItemsets(struct FrequentItemset *frequentItemsets) {
     printf("Frequent itemsets:\n");
@@ -164,6 +211,36 @@ void printFrequentItemsetCounts(struct FrequentItemset *frequentItemsets) {
         printf("Number of frequent %d_itemsets: %zu\n", k+1, frequentItemsets[k].numberOfItemsets);
         k++;
     }
+}
+
+struct Itemset ** generateNonEmptySubsets(struct Itemset *itemset) {
+    size_t numSubsets = (size_t)((1 << itemset->size) - 1);
+    struct Itemset *newItemset;
+    struct Itemset **subsets = calloc(numSubsets, sizeof(struct Itemset *));
+    for (uint32_t i = 1; i < numSubsets; i++) {
+        newItemset = malloc(sizeof(struct Itemset));
+        newItemset->items = calloc(itemset->size, sizeof(uint32_t));
+        newItemset->size = 0;
+        uint32_t j = i;
+        uint32_t k = 0;
+        while (j > 0) {
+            if (j & 1) {
+                newItemset->items[newItemset->size] = itemset->items[k];
+//                printf("%d ", newItemset->items[j-1]);
+                printf("%d ", itemset->items[k]);
+                newItemset->size++;
+            }
+            j = j >> 1;
+            k++;
+        }
+        printf("\n");
+        subsets[i-1] = newItemset;
+    }
+    return subsets;
+}
+
+struct Rule * generateStrongRules(struct Rule *currRule, struct Itemset itemset) {
+    return NULL;
 }
 
 int main(int argc, char *argv[]) {
@@ -208,6 +285,8 @@ int main(int argc, char *argv[]) {
 
         struct Itemset *C1 = calloc(500, sizeof(struct Itemset));
         struct FrequentItemset *frequentItemsets = calloc(maxItemsOnLine, sizeof(struct FrequentItemset));
+        struct HashTree **candidateHashTrees = calloc(maxItemsOnLine, sizeof(struct HashTree *));
+        candidateHashTrees[0] = createHashTree(500);
 
         rewind(fp);
 
@@ -230,6 +309,7 @@ int main(int argc, char *argv[]) {
             transactions[transactionIndex].items = calloc(maxItemsOnLine, sizeof(int));
             int itemCount = 0;
             while (sscanf(p, "%d", &number) == 1) {
+
                 C1[number].support += 1;
                 transactions[transactionIndex].items[itemCount] = number;
                 itemCount += 1;
@@ -318,12 +398,23 @@ int main(int argc, char *argv[]) {
             //// Prune Ck Step?  ////
             /////////////////////////
 
-            size_t tableSize = 0;
-            uint32_t tmp = 1;
-            while ((float) c / (float) tmp > 0.7) {
-                tableSize++;
-                tmp = tmp << 1;
-            }
+            struct Node *currNode = Ck->firstLeaf;
+//            while (currNode != NULL) {
+//                for (int i = 0; i < currNode->numItemsets; i++) {
+//                    if (!isPotentiallyFrequent(frequentItemsets, currNode->itemsets[i], k+1)) {
+//                        // Need to free?
+//                        currNode->itemsets[i] = NULL;
+//                    }
+//                }
+//                currNode = currNode->nextLeaf;
+//            }
+
+//            size_t tableSize = 0;
+//            uint32_t tmp = 1;
+//            while ((float) c / (float) tmp > 0.7) {
+//                tableSize++;
+//                tmp = tmp << 1;
+//            }
 
             for (int t = 0; t < numTransactions; t++) {
                 if (transactions[t].numItems >= k+2) {
@@ -333,11 +424,11 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            struct Node *currNode = Ck->firstLeaf;
+            currNode = Ck->firstLeaf;
             numFrequent = 0;
             while (currNode != NULL) {
                 for (int i = 0; i < currNode->numItemsets; i++) {
-                    if (currNode->itemsets[i]->support >= minSupport) {
+                    if (currNode->itemsets[i] != NULL && currNode->itemsets[i]->support >= minSupport) {
                         numFrequent++;
                     }
                 }
@@ -361,7 +452,7 @@ int main(int argc, char *argv[]) {
             currNode = Ck->firstLeaf;
             while (currNode != NULL) {
                 for (int i = 0; i < currNode->numItemsets; i++) {
-                    if (currNode->itemsets[i]->support >= minSupport) {
+                    if (currNode->itemsets[i] != NULL && currNode->itemsets[i]->support >= minSupport) {
                         frequentItemsets[k + 1].itemsets[itemsetIndex].items = calloc(k + 2, sizeof(uint32_t));
                         for (int j = 0; j < k + 2; j++) {
                             frequentItemsets[k + 1].itemsets[itemsetIndex].items[j] = currNode->itemsets[i]->items[j];
@@ -372,21 +463,43 @@ int main(int argc, char *argv[]) {
                 }
                 currNode = currNode->nextLeaf;
             }
-//
-//            for (int i = 0; i < numCandidates; i++) {
-//                if (Ck[i].support >= minSupport) {
-//                    frequentItemsets[k + 1].itemsets[itemsetIndex].items = calloc(k + 2, sizeof(uint32_t));
-//                    for (int j = 0; j < k + 2; j++) {
-//                        frequentItemsets[k + 1].itemsets[itemsetIndex].items[j] = Ck[i].items[j];
-//                    }
-//                    frequentItemsets[k + 1].itemsets[itemsetIndex].support = Ck[i].support;
-//                    itemsetIndex++;
-//                }
-////                free(Ck[i].items);
-//            }
-//            printFrequentItemsets(frequentItemsets);
-//            free(Ck);
         }
+        struct Itemset *fooItemset = malloc(sizeof(struct Itemset));
+        fooItemset->size = 4;
+        fooItemset->support = 0;
+        fooItemset->items = calloc(4, sizeof(uint32_t));
+        fooItemset->items[0] = 1;
+        fooItemset->items[1] = 2;
+        fooItemset->items[2] = 3;
+        fooItemset->items[3] = 4;
+        struct Itemset **subsets = generateNonEmptySubsets(fooItemset);
+        for (int i = 0; i < (1 << fooItemset->size) - 2; i++) {
+            for (int j=0; j < subsets[i]->size; j++) {
+                printf("%d ", subsets[i]->items[j]);
+            }
+            printf("\n");
+        }
+
+//        do {
+//            for (int i = 0; i < subset->itemset->size; i++) {
+//                printf("i=%d: %d ", i, subset->itemset->items[i]);
+//            }
+//            printf("\n");
+//            subset = subset->nextSubset;
+//        } while (subset->nextSubset != NULL);
+//        // Generate strong rules
+//        struct Rule *firstRule = malloc(sizeof(struct Rule));
+//        firstRule->isFirst = true;
+//        firstRule->anticedentSize = 0;
+//        struct Rule *currRule = firstRule;
+//        int k = 0;
+//        while (frequentItemsets[k].numberOfItemsets > 0) {
+//            for (int i = 0; i < frequentItemsets[k].numberOfItemsets; i++) {
+//                currRule = generateStrongRules(currRule, frequentItemsets->itemsets[i]);
+//            }
+//            k++;
+//        }
+
 //    size_t key1Size = 3;
 //    uint32_t key1[key1Size];
 //    key1[0] = 13;
