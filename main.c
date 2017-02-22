@@ -197,14 +197,15 @@ void printFrequentItemsets(struct FrequentItemset *frequentItemsets, size_t numT
     int k = 0;
     while (frequentItemsets[k].numberOfItemsets > 0) {
         for (int i = 0; i < frequentItemsets[k].numberOfItemsets; i++) {
-            printf("{");
+//            printf("{");
             for (int j = 0; j <= k; j++) {
                 printf("%d", frequentItemsets[k].itemsets[i].items[j]);
                 if (j < k) {
-                    printf(", ");
+                    printf(" ");
                 }
             }
-            printf("} (%.2lf)\n", (double) frequentItemsets[k].itemsets[i].support / (double) numTransactions);
+//            printf(" (%.2lf)\n", (double) frequentItemsets[k].itemsets[i].support / (double) numTransactions);
+            printf(" (%d)\n", frequentItemsets[k].itemsets[i].support);
         }
         k++;
     }
@@ -215,10 +216,13 @@ void printFrequentItemsetCounts(struct FrequentItemset *frequentItemsets) {
     if (frequentItemsets[0].numberOfItemsets == 0) {
         printf("There are no frequent itemsets with the given support.\n");
     }
+    int count = 0;
     while (frequentItemsets[k].numberOfItemsets > 0) {
+        count += frequentItemsets[k].numberOfItemsets;
         printf("Number of frequent %d_itemsets: %zu\n", k + 1, frequentItemsets[k].numberOfItemsets);
         k++;
     }
+    printf("Total frequent: %d\n", count);
 }
 
 struct Itemset **generateNonEmptySubsets(struct Itemset *itemset) {
@@ -375,6 +379,14 @@ int main(int argc, char *argv[]) {
         int min = INT_MAX;
         char inputBuffer[255];
         fp = fopen(argv[1], "r");
+
+        // Check if file was found
+        if (fp == NULL) {
+            printf("File '%s' was not found.", argv[1]);
+            return 1;
+        }
+
+
         size_t numTransactions = 0;
         size_t maxItemsOnLine = 0;
         size_t numItemsOnLine = 0;
@@ -383,9 +395,9 @@ int main(int argc, char *argv[]) {
             char *p = inputBuffer;
             while (sscanf(p, "%d", &number) == 1) {
                 numItemsOnLine += 1;
-                if (number > 100) {
+                if (number >= 100) {
                     p += 4;
-                } else if (number > 10) {
+                } else if (number >= 10) {
                     p += 3;
                 } else {
                     p += 2;
@@ -427,9 +439,9 @@ int main(int argc, char *argv[]) {
                 C1[number].support += 1;
                 transactions[transactionIndex].items[itemCount] = number;
                 itemCount += 1;
-                if (number > 100) {
+                if (number >= 100) {
                     p += 4;
-                } else if (number > 10) {
+                } else if (number >= 10) {
                     p += 3;
                 } else {
                     p += 2;
