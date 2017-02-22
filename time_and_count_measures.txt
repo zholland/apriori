@@ -1,0 +1,37 @@
+100 Transaction case:
+Minimum Support: 10% (10 transactions)
+Miniumum Confidence: 80%
+
+Elapsed time: 0.000534 seconds
+
+Number of frequent 1_itemsets: 10
+Number of association rules: 0
+
+
+1000 Transaction case:
+Minimum Support: 1% (10 transactions)
+Miniumum Confidence: 80%
+
+Number of frequent 1_itemsets: 334
+Number of frequent 2_itemsets: 174
+Number of association rules: 0
+Elapsed time: 0.063279 s
+
+
+10000 Transaction case (NOTE: the provided file actually has only 9949 transactions):
+Minimum Support: 0.1% (9 transactions)
+Miniumum Confidence: 80%
+
+Elapsed time: 6.039671 seconds
+
+Number of frequent 1_itemsets: 476
+Number of frequent 2_itemsets: 26629
+Number of frequent 3_itemsets: 10237
+Number of frequent 4_itemsets: 4894
+Number of frequent 5_itemsets: 2954
+Number of frequent 6_itemsets: 1378
+Number of frequent 7_itemsets: 484
+Number of frequent 8_itemsets: 125
+Number of frequent 9_itemsets: 22
+Number of frequent 10_itemsets: 2
+Number of association rules: 197898
