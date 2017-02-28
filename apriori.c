@@ -456,7 +456,7 @@ int main(int argc, char *argv[]) {
         }
 
         // Turn the support percentage into an integer value
-        int minSupport = (int) (support * numTransactions);
+        int minSupport = (int) (support * numTransactions + 0.5);
 
         // Initialize the array to hold the transactions.
         struct Transaction *transactions = calloc(numTransactions, sizeof(struct Transaction));
